@@ -15,16 +15,23 @@
 
 //Leds
 #define PIN        9
+#define MAX_BRIGHTNESS 50
 #define NUMPIXELS 32
 #define DELAYVAL 100
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
+uint32_t idleColor1 = pixels.Color(0, 30, 80);   // Original blue
+uint32_t idleColor2 = pixels.Color(10, 150, 60); // Original green
+
+
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
 #define BUTTON_PIN 38
+#define BUTTON_PIN2 39
+
 // Creamos un objeto tipo Button
 Bounce2::Button button = Bounce2::Button();
-
+Bounce2::Button button2 = Bounce2::Button();
 
 SlotMachine game;
 
@@ -57,7 +64,12 @@ void setup() {
   button.interval(25);                      // tiempo de anti-rebote
   button.setPressedState(LOW);              // porque está conectado a GND
 
+  button2.attach(BUTTON_PIN2, INPUT_PULLUP);  // usa pull-up interno
+  button2.interval(25);                      // tiempo de anti-rebote
+  button2.setPressedState(LOW);              // porque está conectado a GND
 
+
+  pixels.setBrightness(MAX_BRIGHTNESS);
   for (int i = 0; i < NUMPIXELS; i++) {
     // pares = azul tenue, impares = verde "casino"
     if (i % 2 == 0) pixels.setPixelColor(i, pixels.Color(0, 30, 80));
@@ -69,13 +81,23 @@ void setup() {
 void loop() {
   // Actualizar botones y juego
   button.update();
+  button2.update();
+
 
   // Manejar pulsación: iniciar juego y cambiar estado de LEDs
-  if (button.pressed() && !game.isSpinning()) {
+  if ((button.pressed()) && !game.isSpinning()) {
     game.play();
     ledState = LED_SPIN;
   }
 
+  if (button2.pressed()) {
+    if ( !game.isSpinning()) {
+    // Generate new random colors for idle mode
+    idleColor1 = getRandomColor();
+    idleColor2 = getRandomColor();
+  }
+
+}
   game.update();
 
   // Detectar transición: estaba girando y ya no -> evaluar resultado
@@ -118,11 +140,11 @@ void leds(){
     case LED_IDLE:
       // Estado inicial
       for (int i = 0; i < NUMPIXELS; i++) {
-        // Led pares azules y los impares verdes
-        if (i % 2 == 0) pixels.setPixelColor(i, pixels.Color(0, 30, 80));
-        else pixels.setPixelColor(i, pixels.Color(10, 150, 60));
-      }
-      break;
+    // Led pares color1, impares color2
+      if (i % 2 == 0) pixels.setPixelColor(i, idleColor1);
+      else pixels.setPixelColor(i, idleColor2);
+    }
+    break;
 
     case LED_SPIN: {
       
@@ -187,4 +209,18 @@ void leds(){
   }
 
   pixels.show();
+}
+
+uint32_t getRandomColor() {
+  const uint32_t dimColors[] = {
+    pixels.Color(30, 10, 50),   // Purple
+    pixels.Color(10, 30, 60),   // Blue
+    pixels.Color(10, 50, 30),   // Green
+    pixels.Color(50, 30, 10),   // Orange
+    pixels.Color(40, 10, 40),   // Magenta
+    pixels.Color(10, 40, 40),   // Teal
+    pixels.Color(40, 40, 10),   // Gold
+    pixels.Color(20, 20, 40)    // Lavender
+  };
+  return dimColors[random(0, 8)];
 }
