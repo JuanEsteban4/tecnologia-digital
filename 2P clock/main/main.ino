@@ -2,7 +2,7 @@
 #include "lib/buzzer.h"
 
 void setup(){
-  Serial.begin(115200);
+  //Serial.begin(115200);
   initServo();
   buzzerSetup();
   initLeds();
@@ -12,6 +12,7 @@ void setup(){
 
 int pastMin = -1;
 int pastSec = -1;
+unsigned long lastmillis = 0;
 void loop(){
   unsigned long now = millis();
   
@@ -19,6 +20,11 @@ void loop(){
   int min = currentTimeTM.tm_min;
   int hour = currentTimeTM.tm_hour;
 
+  //Auto change mode every 15 sec
+  if((now - lastmillis) > 15000){
+    setClockMode((clockDisplayMode+1) % 3);
+    lastmillis = now;
+  }
   // For buzzer
   if(min == 30 && pastMin != min) { 
     setBuzzerTimes(1);
@@ -26,7 +32,8 @@ void loop(){
   }
 
   if(!min && pastMin != min){
-    setBuzzerTimes(hour);
+    int times = (hour % 12 == 0) ? 12 : hour % 12;
+    setBuzzerTimes(times);
     pastMin = min;
   }
 

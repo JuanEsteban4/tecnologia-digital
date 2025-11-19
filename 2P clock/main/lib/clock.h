@@ -16,6 +16,7 @@
 #define TFT_DC    6
 #define TFT_RST   5
 #define TFT_CS   10
+#define VCC 7 //Needed for vcc for screen
 #define TFT_W 240
 #define TFT_H 240
 #define IMG_W 150
@@ -119,6 +120,10 @@ void setupClock(const char* ssid,const char* pass){
 
   startTime = millis();
 
+  //Needed for vcc for screen
+
+  pinMode(VCC, OUTPUT);
+  digitalWrite(VCC,HIGH);
   // Leer RTC interno al arrancar
   time_t now = time(nullptr);
   localtime_r(&now, &currentTimeTM);
@@ -132,8 +137,8 @@ void setupClock(const char* ssid,const char* pass){
       syncNTP();
       updateLocalTime();
     }else{
-       setClockTime(0,0,0);
-       setClockDate(11,11,11);
+       setClockTime(15,10,0);
+       setClockDate(18,11,2025);
     }
   }
 }
@@ -201,54 +206,33 @@ static void drawDate(){
 }
 
 static void drawAnalog(){
-    int cx = TFT_W / 2;
-    int cy = TFT_H / 2;
-    int radius = 110;
+  int cx = TFT_W / 2;
+  int cy = TFT_H / 2;
+  int r  = 90;
 
-    int secs = currentTimeTM.tm_sec;
-    int mins = currentTimeTM.tm_min;
-    int hrs = currentTimeTM.tm_hour;
+  uint16_t mainC = rgb565(255,105,180);
+  uint16_t glow  = rgb565(138,43,226);
 
-    // círculo y números (como antes)
-    canvas.drawCircle(cx, cy, radius, ST77XX_WHITE);
-    canvas.setTextColor(ST77XX_WHITE);
-    canvas.setTextSize(1.5);
-    for (int i = 1; i <= 12; i++) {
-      float a = (i * 30 - 90) * 0.017453292519943295f;
-      int tx = cx + cos(a) * (radius - 25);
-      int ty = cy + sin(a) * (radius - 25);
-      canvas.setCursor(tx - 5, ty+10);  // ← compensación exacta probada (4px izq, 8px abajo)
-      canvas.print(i);
-    }
+  canvas.drawCircle(cx, cy, r, mainC);
+  canvas.drawCircle(cx, cy, r-1, glow);
 
-    // Ángulos reales
-    float secAngle  = secs * 6.0f;
-    float rawMinAngle  = mins * 6.0f + secs * 0.1f;
-    float rawHourAngle = (hrs % 12) * 30.0f + mins * 0.5f;
+  for(int i=0;i<12;i++){
+    float ang = i * 30 * DEG_TO_RAD;
+    int x1 = cx + cos(ang) * (r - 12);
+    int y1 = cy + sin(ang) * (r - 12);
+    int x2 = cx + cos(ang) * (r - 3);
+    int y2 = cy + sin(ang) * (r - 3);
+    canvas.drawLine(x1,y1,x2,y2,mainC);
+  }
 
-    // Offsets de dibujo (ajusta si tu mano lo necesita)
-    const float MIN_OFFSET = -50.0f; // deja el valor que estabas usando
-    const float HOR_OFFSET = +50.0f;
+  float angSec = (currentTimeTM.tm_sec * 6 - 90) * DEG_TO_RAD;
+  float angMin = ((currentTimeTM.tm_min + currentTimeTM.tm_sec/60.0) * 6 - 90) * DEG_TO_RAD;
+  float angHr  = ((currentTimeTM.tm_hour % 12 + currentTimeTM.tm_min/60.0) * 30 - 90) * DEG_TO_RAD;
 
-    float minAngle  = rawMinAngle  + MIN_OFFSET;
-    float hourAngle = rawHourAngle + HOR_OFFSET;
-
-    // Dibujar manecillas-imagenes (por debajo del gato? NO: deben ir encima del gato,
-    // en tu requerimiento pediste que el reloj este encima del fondo y de la animacion del gato.
-    // Por tanto las manecillas y gato_segundero deben dibujarse aquí (encima del gato_sin_fondo).
-    //
-    // Nota: si quieres que el gato segundero vaya encima de las manos, dibuja gato_sec después.
-    // Actualmente dibujamos manos primero y gato_sec (segundero) después para que el gato segundero quede arriba.
-    //
-    // Pivotes y escala (usa los valores que probaste)
-    // mano_hor (reflejada) - pivote en esquina inferior derecha (99,76) o según tu calibración
-    drawRotatedScaledBitmap(cx, cy, mano_hor, 99, 76, hourAngle, 99, 76, 0.80f);
-
-    // mano_min - pivote en esquina inferior izquierda
-    drawRotatedScaledBitmap(cx, cy, mano_min, 99, 76, minAngle, 0, 76, 0.95f);
-
-    // segundero: gato image (arriba de todo)
-    drawRotatedScaledBitmap(cx, cy, gato_sec, 150, 92, secAngle, 75, 46, 1.00f);
+  canvas.drawLine(cx,cy, cx + cos(angSec)*(r-14), cy + sin(angSec)*(r-14), rgb565(255,0,0));
+  canvas.drawLine(cx,cy, cx + cos(angMin)*(r-24), cy + sin(angMin)*(r-24), mainC);
+  canvas.drawLine(cx,cy, cx + cos(angHr )*(r-42), cy + sin(angHr )*(r-42), glow);
+  canvas.fillCircle(cx,cy,4, mainC);
 }
 
 // =================== UPDATE ==========================
