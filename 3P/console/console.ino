@@ -3,6 +3,7 @@
 
 #include "race.h"
 #include "zombies.h"
+#include "BuzzerManager.h"
 
 #define GAMES 2
 
@@ -84,7 +85,8 @@ void menu() {
 }
 
 void setup() {
-  //Serial.begin(115200);
+  Serial.begin(115200);
+  setupBuzzer();
   initTft();
   setupPacketManager();
 }

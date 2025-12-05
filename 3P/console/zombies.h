@@ -8,7 +8,12 @@
 #pragma once
 
 #include "tft.h"
-#include "sprites.h"   // Debe proveer: uint16_t textures[], uint16_t zombies[]
+#include "sprites.h"  
+#include "packetManager.h"
+#include "buzzerManager.h"
+
+
+#include "zombies_buzzer.h"
 
 // ---------- Config y constantes ----------
 #define PI 3.14159265359f
@@ -42,20 +47,20 @@ struct Entity { float x,y,z; } entities[1];
 float depth[RAYS];
 
 int walls[] = {
-  1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
   1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
   1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,1,0,0,0,0,0,0,0,0,0,0,0,1,
   1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,1,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,1,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,1,0,0,0,0,0,0,0,1,0,0,0,1,
-  1,0,1,0,0,0,1,1,0,0,1,0,0,0,1,
-  1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,
-  1,0,1,0,0,0,0,0,0,0,1,0,0,0,1,
-  1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,
-  1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,
-  1,0,0,0,1,1,0,0,0,0,1,0,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 };
 
@@ -81,29 +86,6 @@ inline void plot(int x, int y, uint16_t color) {
   if(x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) canvas.drawPixel(x, y, color);
 }
 
-// Convertir joystick ADC a 0..255 (si tu joystick ya entrega 0..255 puedes leer directo, aquí convertiremos ADC 0..4095)
-// uint8_t readJoystickByte(int pin) {
-//   int v = analogRead(pin); // 0..4095 en ESP32
-//   // map a 0..255
-//   int m = map(v, 0, 4095, 0, 255);
-//   if(m < 0) m = 0;
-//   if(m > 255) m = 255;
-//   return (uint8_t)m;
-// }
-
-// // Leer botones (activo HIGH assumed)
-// inline bool btnPressed(int pin){ return digitalRead(pin) == HIGH; }
-
-// Inicialización
-// void setupPins(){
-//   pinMode(JOY_X_PIN, INPUT);
-//   pinMode(JOY_Y_PIN, INPUT);
-//   pinMode(BTN_PAUSE, INPUT_PULLDOWN);
-//   pinMode(BTN_BACK, INPUT_PULLDOWN);
-//   pinMode(BTN_A, INPUT_PULLDOWN);
-//   pinMode(BTN_B, INPUT_PULLDOWN);
-// }
-
 void initGame(){
   p.x = 120; p.y = 120; p.a = -PI/2;
   p.dx = cosf(p.a) * VELOCITY;
@@ -112,36 +94,36 @@ void initGame(){
 }
 
 // ---------- Rendering: minimap y jugador (overlay) ----------
-void drawMap2D(){
-  int mapPixelSize = 6; // tamaño visual del minimapa (ajustable)
-  int mapOffsetX = WIDTH - (MAP_SIZE * mapPixelSize) - 4; // esquina derecha superior
-  int mapOffsetY = 4;
-  for(int mx=0; mx<MAP_SIZE; mx++){
-    for(int my=0; my<MAP_SIZE; my++){
-      int idx = my*MAP_SIZE + mx;
-      uint16_t c = (walls[idx] > 0) ? 0xFFFF : 0x0000; // blanco/negro
-      int xo = mapOffsetX + mx * mapPixelSize;
-      int yo = mapOffsetY + my * mapPixelSize;
-      canvas.fillRect(xo, yo, mapPixelSize-1, mapPixelSize-1, c);
-    }
-  }
-  // Player on minimap
-  int px = mapOffsetX + (int)(p.x / BLOCK * mapPixelSize);
-  int py = mapOffsetY + (int)(p.y / BLOCK * mapPixelSize);
-  canvas.fillCircle(px, py, 3, 0xfc8f);
-}
+// void drawMap2D(){
+//   int mapPixelSize = 6; // tamaño visual del minimapa (ajustable)
+//   int mapOffsetX = WIDTH - (MAP_SIZE * mapPixelSize) - 4; // esquina derecha superior
+//   int mapOffsetY = 4;
+//   for(int mx=0; mx<MAP_SIZE; mx++){
+//     for(int my=0; my<MAP_SIZE; my++){
+//       int idx = my*MAP_SIZE + mx;
+//       uint16_t c = (walls[idx] > 0) ? 0xFFFF : 0x0000; // blanco/negro
+//       int xo = mapOffsetX + mx * mapPixelSize;
+//       int yo = mapOffsetY + my * mapPixelSize;
+//       canvas.fillRect(xo, yo, mapPixelSize-1, mapPixelSize-1, c);
+//     }
+//   }
+//   // Player on minimap
+//   int px = mapOffsetX + (int)(p.x / BLOCK * mapPixelSize);
+//   int py = mapOffsetY + (int)(p.y / BLOCK * mapPixelSize);
+//   canvas.fillCircle(px, py, 3, 0xfc8f);
+// }
 
-// Dibujar jugador en minimapa con dirección
-void drawPlayerMinimap(){
-  int mapOffsetX = WIDTH - (MAP_SIZE * 6) - 4;
-  int mapOffsetY = 4;
-  int px = mapOffsetX + (int)(p.x / BLOCK * 6);
-  int py = mapOffsetY + (int)(p.y / BLOCK * 6);
-  int dx = (int)(cosf(p.a)*8);
-  int dy = (int)(sinf(p.a)*8);
-  canvas.drawLine(px, py, px+dx, py+dy, 0xfc8f);
-  canvas.fillCircle(px, py, 2, 0xfc8f);
-}
+// // Dibujar jugador en minimapa con dirección
+// void drawPlayerMinimap(){
+//   int mapOffsetX = WIDTH - (MAP_SIZE * 6) - 4;
+//   int mapOffsetY = 4;
+//   int px = mapOffsetX + (int)(p.x / BLOCK * 6);
+//   int py = mapOffsetY + (int)(p.y / BLOCK * 6);
+//   int dx = (int)(cosf(p.a)*8);
+//   int dy = (int)(sinf(p.a)*8);
+//   canvas.drawLine(px, py, px+dx, py+dy, 0xfc8f);
+//   canvas.fillCircle(px, py, 2, 0xfc8f);
+// }
 
 // ---------- Draw Entities (sprite) simplified ----------
 void drawEntities(){
@@ -153,7 +135,7 @@ void drawEntities(){
   float rx = dx * Cos + dy * Sin;
   float ry = -dx * Sin + dy * Cos;
 
-  if(rx <= 0.1f) return; // behind camera
+  if(rx <= 0.5f) return; // behind camera
 
   // proyección simple
   float f = (WIDTH/2) / tanf(FOV/2.0f);
@@ -161,7 +143,7 @@ void drawEntities(){
   int screenY = (int)((dz * f / rx) + (HEIGHT/2));
 
   // escala
-  float spriteConstant = 2600.0f;
+  float spriteConstant = 3000.0f;
   int scale = (int)(spriteConstant / rx);
   if(scale < 4) scale = 4;
 
@@ -339,7 +321,13 @@ void drawRays(){
         dark |= ((((pixel >> 5) & 0x3F) >> 1) << 5);
         dark |= ((pixel & 0x1F) >> 1);
         plot(screenX, y, dark);
+
         // mirrored ceiling
+        pixel = textures[idx + 1024];
+        // darken floor
+        dark = (((pixel >> 11) & 0x1F) >> 1) << 11;
+        dark |= ((((pixel >> 5) & 0x3F) >> 1) << 5);
+        dark |= ((pixel & 0x1F) >> 1);
         plot(screenX, HEIGHT - y, dark);
       }
     }
@@ -347,7 +335,29 @@ void drawRays(){
     // next ray
     angle += FOV / (float)RAYS;
     if(angle > 2*PI) angle -= 2*PI;
-  } // end rays
+  }
+}
+
+void handleInput(){
+  uint8_t x = CONTROL_PACKET.joyX;
+  uint8_t y = CONTROL_PACKET.joyY;
+
+  if(y > 150){
+    p.x -= p.dx;
+    p.y -= p.dy;
+  }
+  else if(y < 90){
+    p.x += p.dx;
+    p.y += p.dy;
+  }
+
+  if( x > 150){
+    p.a += ANGLE_VELOCITY; if(p.a > 2*PI){p.a -= 2*PI;} p.dx = cos(p.a)*VELOCITY; p.dy = sin(p.a)*VELOCITY;
+  }
+  else if(x < 90){
+    p.a -= ANGLE_VELOCITY; if(p.a < 0){p.a += 2*PI;} p.dx = cos(p.a)*VELOCITY; p.dy = sin(p.a)*VELOCITY;
+  }
+
 }
 
 // ---------- Main render ----------
@@ -356,8 +366,8 @@ void renderFrame(){
 
   drawRays();      // 3D
   drawEntities();  // sprites (z-buffer with depth[])
-  drawMap2D();     // minimap overlay
-  drawPlayerMinimap();
+  // drawMap2D();     // minimap overlay
+  // drawPlayerMinimap();
 
   // push canvas buffer to tft
   updateTft();
@@ -368,71 +378,21 @@ bool paused = false;
 unsigned long lastFrame = 0;
 const unsigned long FRAME_MS = 33; // ~30 FPS
 
-void readControlsAndMove(){
-  // // read joystick (0..255)
-  // uint8_t jx = readJoystickByte(JOY_X_PIN);
-  // uint8_t jy = readJoystickByte(JOY_Y_PIN);
-
-  // // normalize to -1..1 with deadzone
-  // float nx = ((int)jx - 128) / 128.0f;
-  // float ny = ((int)jy - 128) / 128.0f;
-  // const float DEAD = 0.12f;
-  // if(fabs(nx) < DEAD) nx = 0;
-  // if(fabs(ny) < DEAD) ny = 0;
-
-  // // map joystick:
-  // // - nx (left-right) controls rotation
-  // // - ny (up-down) controls forward/back movement
-  // if(nx != 0.0f){
-  //   p.a += nx * ANGLE_VELOCITY * 2.0f; // scaled
-  //   if(p.a < 0) p.a += 2*PI;
-  //   if(p.a > 2*PI) p.a -= 2*PI;
-  //   p.dx = cosf(p.a) * VELOCITY;
-  //   p.dy = sinf(p.a) * VELOCITY;
-  // }
-
-  // if(ny != 0.0f){
-  //   // forward/back
-  //   p.x += p.dx * (ny * 0.8f); // ny in -1..1
-  //   p.y += p.dy * (ny * 0.8f);
-  //   // collision simple: avoid walking into walls
-  //   int mx = ((int)p.x) >> SHIFT;
-  //   int my = ((int)p.y) >> SHIFT;
-  //   if(mx >=0 && my >=0 && mx < MAP_SIZE && my < MAP_SIZE && walls[my*MAP_SIZE + mx] > 0){
-  //     // undo
-  //     p.x -= p.dx * (ny * 0.8f);
-  //     p.y -= p.dy * (ny * 0.8f);
-  //   }
-  // }
-
-  // // Buttons
-  // if(btnPressed(BTN_PAUSE)) { paused = !paused; delay(200); } // debounce simple
-  // if(btnPressed(BTN_BACK))  { /* podrías implementar menú */ }
-  // if(btnPressed(BTN_A))     { /* acción A */ }
-  // if(btnPressed(BTN_B))     { /* acción B */ }
-}
-
-// ---------- Arduino setup & loop ----------
 void initZombiesGame() {
- // Serial.begin(115200);
-  // Inicializar tft
-  //tft.init(240, 240); // ancho, alto
-  //tft.setRotation(0);
-  canvas.fillScreen(0x0000);
-  //tft.fillScreen(0x0000);
-
-  //setupPins();
+  canvas.fillScreen(0);
+  playSongAsyncStart(zombies_freq,zombies_dur, zombies_start,ZOMBIES_NOTES);
   initGame();
   lastFrame = millis();
 }
 
 void loopZombiesGame() {
   while(1){
-     unsigned long now = millis();
-    if(now - lastFrame >= 32){ //30 fps
+    unsigned long now = millis();
+    playSongAsyncUpdate();
+    if(now - lastFrame >= FRAME_MS){ 
       lastFrame = now;
       if(!paused){
-        readControlsAndMove();
+        handleInput();
         renderFrame();
       } else {
         // aún podemos dibujar overlay de "PAUSA"
