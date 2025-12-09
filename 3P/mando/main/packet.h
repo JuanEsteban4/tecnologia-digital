@@ -14,6 +14,9 @@ typedef struct __attribute__((packed)) {
     uint8_t buttons;  // 4 botones comprimidos en bits
     uint8_t joyX;     // 0-255
     uint8_t joyY;     // 0-255
-    int16_t gyro;     // 1 eje del giroscopio 
+    float gyroX;     // 1 eje del giroscopio 
+    float gyroY;     // 1 eje del giroscopio 
+    float gyroZ;     // 1 eje del giroscopio 
+
 
 } controlPacket;

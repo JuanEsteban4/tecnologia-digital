@@ -35,11 +35,13 @@ bool addPeer(const uint8_t *mac) {
   return esp_now_add_peer(&peerInfo) == ESP_OK;
 }
 
-void updateControlPacket(uint8_t buttons, uint8_t joyX, uint8_t joyY,uint16_t giro ){
+void updateControlPacket(uint8_t buttons, uint8_t joyX, uint8_t joyY,float giroX ,float giroY,float giroZ ){
   CONTROL_PACKET.buttons = buttons;
   CONTROL_PACKET.joyX = joyX;     
   CONTROL_PACKET.joyY = joyY;    
-  CONTROL_PACKET.gyro = giro;     
+  CONTROL_PACKET.gyroX = giroX;
+  CONTROL_PACKET.gyroY = giroY;     
+  CONTROL_PACKET.gyroZ = giroZ;     
 }
 
 void setupPacketManager() {

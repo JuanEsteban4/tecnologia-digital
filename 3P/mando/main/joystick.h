@@ -6,10 +6,12 @@ void setupJoystick(){
     pinMode(VRX_PIN, INPUT);
     pinMode(VRY_PIN, INPUT);
 }
-int getJoyX(){
+
+// Swapped due to control built
+int getJoyY(){
   return analogRead(VRX_PIN);  // 0 - 4095
 }
 
-int getJoyY(){
+int getJoyX(){
   return analogRead(VRY_PIN);  // 0 - 4095
 }

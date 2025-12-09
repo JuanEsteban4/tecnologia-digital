@@ -4,6 +4,8 @@
 #include "race.h"
 #include "zombies.h"
 #include "BuzzerManager.h"
+#include "ServoManager.h"
+#include "neopixel.h"
 
 #define GAMES 2
 
@@ -86,23 +88,30 @@ void menu() {
 
 void setup() {
   Serial.begin(115200);
+  initServo();
   setupBuzzer();
   initTft();
   setupPacketManager();
+  setupNeopixel();
 }
 
 void loop() {
+  Serial.println(state);
   if (state == 1){ // Carreras
     initRaceGame();
     loopRaceGame();
+    menuState = 0;
     state = 0;
   };
   if (state == 2){
     initZombiesGame();
     loopZombiesGame();
+    menuState = 1;
     state = 0;
   };
 
   menu();
+  sendPackets();
   updateTft();
+  loopNeopixel();
 }

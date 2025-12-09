@@ -2,17 +2,12 @@
 
 #define BUZZER_PIN 8 
 
-//----------------------------------------------------
-//                    SETUP BUZZER
-//----------------------------------------------------
+
 void setupBuzzer() {
   ledcAttach(BUZZER_PIN, 5000, 8);
 }
 
 
-//----------------------------------------------------
-//                    INTERNAL STATE
-//----------------------------------------------------
 struct SongState {
     const uint16_t* freqs = nullptr;
     const uint16_t* durs = nullptr;
@@ -29,9 +24,6 @@ struct SongState {
 } song;
 
 
-//----------------------------------------------------
-//          START PLAYING SONG (NON-BLOCKING)
-//----------------------------------------------------
 void playSongAsyncStart(
   const uint16_t* freqs,
   const uint16_t* durs,
@@ -55,7 +47,10 @@ void playSongAsyncStart(
     ledcWriteTone(song.pin, 0);
 }
 
-
+void silenceBuzzer(){
+    song.playing = false;
+    ledcWriteTone(song.pin, 0);
+}
 //----------------------------------------------------
 //         NON-BLOCKING UPDATE (CALL IN LOOP)
 //----------------------------------------------------
@@ -66,7 +61,9 @@ void playSongAsyncUpdate() {
     unsigned long songTime = now - song.startTime;
 
     if (song.index >= song.notes) {
-        song.playing = false;
+        //song.playing = false;
+        //LOOP song
+        song.index = 0;
         ledcWriteTone(song.pin, 0);
         return;
     }

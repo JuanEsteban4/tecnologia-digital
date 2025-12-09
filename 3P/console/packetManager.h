@@ -14,7 +14,7 @@ const unsigned long SEND_INTERVAL_MS = 1000 / 40; // 40 packets per second
 void onDataRecv(const esp_now_recv_info *info, const uint8_t *data, int len) {
   memcpy(&CONTROL_PACKET, data, sizeof(CONTROL_PACKET));
   lastReceived = millis();
-  Serial.printf("b = %d X=%d Y=%d G=%d\n",CONTROL_PACKET.buttons,CONTROL_PACKET.joyX,CONTROL_PACKET.joyY,CONTROL_PACKET.gyro);
+  Serial.printf("b = %d X=%d Y=%d G=%f %f %f\n",CONTROL_PACKET.buttons,CONTROL_PACKET.joyX,CONTROL_PACKET.joyY,CONTROL_PACKET.gyroX, CONTROL_PACKET.gyroY, CONTROL_PACKET.gyroZ);
 }
 
 bool addPeer(const uint8_t *mac) {
@@ -44,14 +44,17 @@ void sendPackets() {
   unsigned long now = millis();
   if (now - lastSend >= SEND_INTERVAL_MS) {
     lastSend = now;
-    esp_now_send(controller, (uint8_t*)&CONTROL_PACKET, sizeof(CONTROL_PACKET));
+    //esp_now_send(controller, (uint8_t*)&CONTROL_PACKET, sizeof(CONTROL_PACKET));
 
     //IDLE state when no packet
     if (now - lastReceived > 30) {
       CONTROL_PACKET.buttons = 0;
       CONTROL_PACKET.joyX = 128;
       CONTROL_PACKET.joyY = 128;
-      CONTROL_PACKET.gyro = 0;
+      CONTROL_PACKET.gyroX = 0;
+      CONTROL_PACKET.gyroY = 0;
+      CONTROL_PACKET.gyroZ = 0;
+
     }
   }
 }

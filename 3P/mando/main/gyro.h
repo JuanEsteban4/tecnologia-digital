@@ -29,6 +29,12 @@ void updateGyro() {
         gyroscope.update();
     }
 }
-uint16_t getGyroX() {
+float getGyroX() {
   return gyroscope.getAngleX();
+}
+float getGyroY() {
+  return gyroscope.getAngleY();
+}
+float getGyroZ() {
+  return gyroscope.getAngleZ();
 }

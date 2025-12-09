@@ -2,10 +2,12 @@
 #include "sprites.h"
 #include "tft.h"
 #include "packetManager.h"
+#include "ServoManager.h"
+#include "race_buzzer.h"
 
 // ======================================================= CONFIG
 #define ACC_STEER 2
-#define TIME_INC 10000
+#define TIME_INC 7000
 #define MAX_ENEMIES 5
 
 // ======================================================= Pilot STRUCT
@@ -30,6 +32,7 @@ Pilot pilot;
 Enemy enemies[MAX_ENEMIES];
 
 bool gameOver = false;
+bool pauseRace = false;
 int score = 0;
 int roadOffset = 0;
 
@@ -77,6 +80,7 @@ void initRaceGame(){
 
   score = 0;
   gameOver = false;
+  pauseRace = 0;
   roadOffset = 0;
 
   // RESET de timers
@@ -93,19 +97,49 @@ void initRaceGame(){
     enemies[i].speed = 1;
     enemies[i].sprite = NULL;
   }
+
+  playSongAsyncStart(racem_freq, racem_dur, racem_start, racem_NOTES);
 }
 
+unsigned long lastBack = 0;
+unsigned long lastServo = 0;
 
 void loopRaceGame(){
   while(1){
+  playSongAsyncUpdate();
+
+
+  if((CONTROL_PACKET.buttons & 8) && (millis() - lastBack > 500)){
+    lastBack  = millis();
+    pauseRace = !pauseRace;
+  }
+
+
+  if(pauseRace){ 
+      canvas.fillScreen(0);
+      canvas.setTextSize(2);
+      canvas.setTextColor(0xffff);
+      canvas.setCursor(30, 100);
+      canvas.print("PAUSED");
+      updateTft();
+      continue;
+  }
+
+  if(CONTROL_PACKET.buttons & 4){
+    silenceBuzzer();
+    return;
+  }
+
   if (gameOver){
     canvas.fillScreen(0);
     canvas.setCursor(50, 100);
     canvas.setTextColor(0xFFFF);
     canvas.println("CRASH!Score: ");
+    canvas.setCursor(50, canvas.getCursorY());
     canvas.print("Score: ");
     canvas.print(score);
     updateTft();
+    initRaceGame();
     delay(3000);
   }
 
@@ -134,10 +168,16 @@ void loopRaceGame(){
 
   //Controles
   int steer = 0;
-  if(CONTROL_PACKET.gyro > 15 || CONTROL_PACKET.joyX < 100 ) steer = -1;
-  if(CONTROL_PACKET.gyro < -15 || CONTROL_PACKET.joyX > 160) steer =  1;
+  // if(CONTROL_PACKET.gyroX < -1 || CONTROL_PACKET.joyX < 100 ) steer = -1;
+  // if(CONTROL_PACKET.gyroX > 1 || CONTROL_PACKET.joyX > 160) steer =  1;
 
-  pilot.steerVel += steer * ACC_STEER;
+  float incl = CONTROL_PACKET.gyroX / 60;
+
+  if(millis() - lastServo > 500){
+    rotateServo(90 + (int)CONTROL_PACKET.gyroX);
+  }
+
+  pilot.steerVel +=  ACC_STEER * incl;
   pilot.steerVel *= 0.9f;
   pilot.x += pilot.steerVel;
   if(pilot.x < 60) pilot.x = 60;
